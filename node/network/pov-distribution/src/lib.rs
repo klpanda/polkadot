@@ -119,6 +119,7 @@ async fn handle_signal(
 
 			Ok(false)
 		}
+		OverseerSignal::BlockFinalized(_) => Ok(false),
 		OverseerSignal::StopWork(relay_parent) => {
 			state.relay_parent_state.remove(&relay_parent);
 

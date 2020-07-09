@@ -26,10 +26,10 @@ use futures::channel::{mpsc, oneshot};
 
 use polkadot_primitives::v1::{
 	BlockNumber, Hash,
-	CandidateReceipt, PoV, ErasureChunk, BackedCandidate, Id as ParaId,
+	CandidateReceipt, CommittedCandidateReceipt, PoV, ErasureChunk, BackedCandidate, Id as ParaId,
 	SignedAvailabilityBitfield, SigningContext, ValidatorId, ValidationCode, ValidatorIndex,
 	CoreAssignment, CoreOccupied, HeadData, CandidateDescriptor,
-	ValidatorSignature, OmittedValidationData,
+	ValidatorSignature, OmittedValidationData, AvailableData,
 };
 use polkadot_node_primitives::{
 	MisbehaviorReport, SignedFullStatement, View, ProtocolId, ValidationResult,
@@ -160,14 +160,18 @@ pub enum BitfieldDistributionMessage {
 /// Availability store subsystem message.
 #[derive(Debug)]
 pub enum AvailabilityStoreMessage {
-	/// Query a `PoV` from the AV store.
-	QueryPoV(Hash, oneshot::Sender<Option<PoV>>),
+	/// Query a `AvailableData` from the AV store.
+	QueryPoV(Hash, oneshot::Sender<Option<AvailableData>>),
 
 	/// Query an `ErasureChunk` from the AV store.
-	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<ErasureChunk>),
+	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<Option<ErasureChunk>>),
 
 	/// Store an `ErasureChunk` in the AV store.
 	StoreChunk(Hash, ValidatorIndex, ErasureChunk),
+
+	/// Store a `AvailableData` in the AV store.
+	/// If `ValidatorIndex` is present store corresponding chunk also.
+	StorePoV(Hash, Option<ValidatorIndex>, u32, AvailableData),
 }
 
 /// The information on scheduler assignments that some somesystems may be querying.
@@ -198,6 +202,8 @@ pub enum RuntimeApiRequest {
 	ValidationCode(ParaId, BlockNumber, Option<BlockNumber>, oneshot::Sender<ValidationCode>),
 	/// Get head data for a specific para.
 	HeadData(ParaId, oneshot::Sender<HeadData>),
+	/// Get receipts of para blocks included in a relay-chain block.
+	GetCandidates(Hash, oneshot::Sender<Option<Vec<CommittedCandidateReceipt>>>),
 }
 
 /// A message to the Runtime API subsystem.

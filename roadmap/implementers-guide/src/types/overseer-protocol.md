@@ -49,13 +49,16 @@ Messages to and from the availability store.
 ```rust
 enum AvailabilityStoreMessage {
 	/// Query the PoV of a candidate by hash.
-	QueryPoV(Hash, ResponseChannel<PoV>),
+	QueryPoV(Hash, ResponseChannel<AvailableData>),
 	/// Query a specific availability chunk of the candidate's erasure-coding by validator index.
 	/// Returns the chunk and its inclusion proof against the candidate's erasure-root.
 	QueryChunk(Hash, ValidatorIndex, ResponseChannel<AvailabilityChunkAndProof>),
 	/// Store a specific chunk of the candidate's erasure-coding by validator index, with an
 	/// accompanying proof.
 	StoreChunk(Hash, ValidatorIndex, AvailabilityChunkAndProof),
+	/// Store `AvailableData`. If `ValidatorIndex` is provided, also store this validator's 
+	/// `AvailabilityChunkAndProof`.
+	StorePoV(Hash, Option<ValidatorIndex>, u32, AvailableData),
 }
 ```
 
@@ -255,6 +258,8 @@ enum RuntimeApiRequest {
 	/// an optional block number representing an intermediate parablock executed in the context of
 	/// that block.
 	ValidationCode(ParaId, BlockNumber, Option<BlockNumber>, ResponseChannel<ValidationCode>),
+	/// Get receipts of blocks included in a relay-chain block.
+	GetCandidates(Hash, ResponseChannel<Option<Vec<AbridgedCandidateReceipt>>>),
 }
 
 enum RuntimeApiMessage {
