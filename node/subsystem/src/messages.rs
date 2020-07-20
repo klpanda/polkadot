@@ -26,10 +26,10 @@ use futures::channel::{mpsc, oneshot};
 
 use polkadot_primitives::v1::{
 	BlockNumber, Hash,
-	CandidateReceipt, CommittedCandidateReceipt, PoV, ErasureChunk, BackedCandidate, Id as ParaId,
+	CandidateReceipt, PoV, ErasureChunk, BackedCandidate, Id as ParaId,
 	SignedAvailabilityBitfield, SigningContext, ValidatorId, ValidationCode, ValidatorIndex,
 	CoreAssignment, CoreOccupied, HeadData, CandidateDescriptor,
-	ValidatorSignature, OmittedValidationData, AvailableData,
+	ValidatorSignature, OmittedValidationData, AvailableData, CandidateEvent,
 };
 use polkadot_node_primitives::{
 	MisbehaviorReport, SignedFullStatement, View, ProtocolId, ValidationResult,
@@ -277,8 +277,8 @@ pub enum RuntimeApiRequest {
 	ValidationCode(ParaId, BlockNumber, Option<BlockNumber>, oneshot::Sender<ValidationCode>),
 	/// Get head data for a specific para.
 	HeadData(ParaId, oneshot::Sender<HeadData>),
-	/// Get receipts of para blocks included in a relay-chain block.
-	GetCandidates(Hash, oneshot::Sender<Option<Vec<CommittedCandidateReceipt>>>),
+	/// Get all events concerning candidates in the last block.
+	CandidateEvents(oneshot::Sender<Vec<CandidateEvent>>),
 }
 
 /// A message to the Runtime API subsystem.
