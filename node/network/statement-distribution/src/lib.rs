@@ -70,7 +70,10 @@ impl<C> Subsystem<C> for StatementDistribution
 	fn start(self, ctx: C) -> SpawnedSubsystem {
 		// Swallow error because failure is fatal to the node and we log with more precision
 		// within `run`.
-		SpawnedSubsystem(run(ctx).map(|_| ()).boxed())
+		SpawnedSubsystem {
+			name: "statement-distribution-subsystem",
+			future: run(ctx).map(|_| ()).boxed(),
+		}
 	}
 }
 
@@ -895,7 +898,7 @@ mod tests {
 	use node_primitives::Statement;
 	use polkadot_primitives::v1::CommittedCandidateReceipt;
 	use assert_matches::assert_matches;
-	use futures::executor::{self, ThreadPool};
+	use futures::executor;
 
 	#[test]
 	fn active_head_accepts_only_2_seconded_per_validator() {
@@ -1212,7 +1215,7 @@ mod tests {
 			},
 		};
 
-		let pool = ThreadPool::new().unwrap();
+		let pool = sp_core::testing::SpawnBlockingExecutor::new();
 		let (mut ctx, mut handle) = subsystem_test::make_subsystem_context(pool);
 		let peer = PeerId::random();
 
@@ -1304,7 +1307,7 @@ mod tests {
 			(peer_c.clone(), peer_data_from_view(peer_c_view)),
 		].into_iter().collect();
 
-		let pool = ThreadPool::new().unwrap();
+		let pool = sp_core::testing::SpawnBlockingExecutor::new();
 		let (mut ctx, mut handle) = subsystem_test::make_subsystem_context(pool);
 
 		executor::block_on(async move {

@@ -508,11 +508,16 @@ impl<Context, T> Subsystem<Context> for AvailabilityStoreSubsystem<Context, T>
 		T: Time + Send + 'static
 {
 	fn start(self, ctx: Context) -> SpawnedSubsystem {
-		SpawnedSubsystem(Box::pin(async move {
+		let future = Box::pin(async move {
 			if let Err(e) = self.run(ctx).await {
 				log::error!(target: "availabilitystore", "Subsystem exited with an error {:?}", e);
 			}
-		}))
+		});
+
+		SpawnedSubsystem {
+			future,
+			name: "availability-store-subsystem",
+		}
 	}
 }
 
@@ -522,7 +527,7 @@ mod tests {
 	use futures::{
 		future,
 		channel::oneshot,
-		executor::{self, ThreadPool},
+		executor,
 		Future,
 	};
 	use std::cell::RefCell;
@@ -636,7 +641,7 @@ mod tests {
 		store: Arc<dyn KeyValueDB>,
 		test: impl FnOnce(TestHarness) -> T,
 	) {
-		let pool = ThreadPool::new().unwrap();
+		let pool = sp_core::testing::SpawnBlockingExecutor::new();
 
 		let (context, virtual_overseer) = subsystem_test::make_subsystem_context(pool.clone());
 		TestTime::set(0);//SystemTime::now_as_secs().unwrap());

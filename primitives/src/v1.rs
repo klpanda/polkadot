@@ -496,15 +496,17 @@ impl GroupRotationInfo {
 	/// Returns the index of the group needed to validate the core at the given index, assuming
 	/// the given number of cores.
 	///
-	/// `core_index` should be less than `cores`.
-	pub fn group_for_core(&self, core_index: usize, cores: usize) -> usize {
-		if self.group_rotation_frequency == 0 { return core_index }
-		if cores == 0 { return 0 }
+	/// `core_index` should be less than `cores`, which is capped at u32::max().
+	pub fn group_for_core(&self, core_index: CoreIndex, cores: usize) -> GroupIndex {
+		if self.group_rotation_frequency == 0 { return GroupIndex(core_index.0) }
+		if cores == 0 { return GroupIndex(0) }
 
+		let cores = sp_std::cmp::min(cores, u32::max_value() as usize);
 		let blocks_since_start = self.now.saturating_sub(self.session_start_block);
 		let rotations = blocks_since_start / self.group_rotation_frequency;
 
-		(core_index + rotations as usize) % cores
+		let idx = (core_index.0 as usize + rotations as usize) % cores;
+		GroupIndex(idx as u32)
 	}
 }
 
@@ -539,7 +541,7 @@ impl<N: Saturating + BaseArithmetic + Copy> GroupRotationInfo<N> {
 #[cfg_attr(feature = "std", derive(PartialEq, Debug))]
 pub struct OccupiedCore<N = BlockNumber> {
 	/// The ID of the para occupying the core.
-	pub para: Id,
+	pub para_id: Id,
 	/// If this core is freed by availability, this is the assignment that is next up on this
 	/// core, if any. None if there is nothing queued for this core.
 	pub next_up_on_available: Option<ScheduledCore>,
@@ -555,6 +557,8 @@ pub struct OccupiedCore<N = BlockNumber> {
 	/// validators has attested to availability on-chain. A 2/3+ majority of `1` bits means that
 	/// this will be available.
 	pub availability: BitVec<bitvec::order::Lsb0, u8>,
+	/// The group assigned to distribute availability pieces of this candidate.
+	pub group_responsible: GroupIndex,
 }
 
 /// Information about a core which is currently occupied.
@@ -562,7 +566,7 @@ pub struct OccupiedCore<N = BlockNumber> {
 #[cfg_attr(feature = "std", derive(PartialEq, Debug))]
 pub struct ScheduledCore {
 	/// The ID of a para scheduled.
-	pub para: Id,
+	pub para_id: Id,
 	/// The collator required to author the block, if any.
 	pub collator: Option<CollatorId>,
 }
@@ -591,15 +595,30 @@ pub enum CoreState<N = BlockNumber> {
 #[derive(Clone, Encode, Decode)]
 #[cfg_attr(feature = "std", derive(PartialEq, Debug))]
 pub enum OccupiedCoreAssumption {
-    /// The candidate occupying the core was made available and included to free the core.
+	/// The candidate occupying the core was made available and included to free the core.
 	#[codec(index = "0")]
-    Included,
-    /// The candidate occupying the core timed out and freed the core without advancing the para.
+	Included,
+	/// The candidate occupying the core timed out and freed the core without advancing the para.
 	#[codec(index = "1")]
-    TimedOut,
-    /// The core was not occupied to begin with.
+	TimedOut,
+	/// The core was not occupied to begin with.
 	#[codec(index = "2")]
-    Free,
+	Free,
+}
+
+/// An even concerning a candidate.
+#[derive(Clone, Encode, Decode)]
+#[cfg_attr(feature = "std", derive(PartialEq, Debug))]
+pub enum CandidateEvent<H = Hash> {
+	/// This candidate receipt was backed in the most recent block.
+	#[codec(index = "0")]
+	CandidateBacked(CandidateReceipt<H>, HeadData),
+	/// This candidate receipt was included and became a parablock at the most recent block.
+	#[codec(index = "1")]
+	CandidateIncluded(CandidateReceipt<H>, HeadData),
+	/// This candidate receipt was not made available in time and timed out.
+	#[codec(index = "2")]
+	CandidateTimedOut(CandidateReceipt<H>, HeadData),
 }
 
 sp_api::decl_runtime_apis! {
@@ -626,7 +645,7 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if either the para is not registered or the assumption is `Freed`
 		/// and the para already occupies a core.
-		fn local_validation_data(para: Id, assumption: OccupiedCoreAssumption)
+		fn local_validation_data(para_id: Id, assumption: OccupiedCoreAssumption)
 			-> Option<LocalValidationData<N>>;
 
 		/// Returns the session index expected at a child of the block.
@@ -638,10 +657,43 @@ sp_api::decl_runtime_apis! {
 		///
 		/// Returns `None` if either the para is not registered or the assumption is `Freed`
 		/// and the para already occupies a core.
-		fn validation_code(para: Id, assumption: OccupiedCoreAssumption) -> Option<ValidationCode>;
+		fn validation_code(para_id: Id, assumption: OccupiedCoreAssumption)
+			-> Option<ValidationCode>;
 
 		/// Get the receipt of a candidate pending availability. This returns `Some` for any paras
 		/// assigned to occupied cores in `availability_cores` and `None` otherwise.
-		fn candidate_pending_availability(para: Id) -> Option<CommittedCandidateReceipt<H>>;
+		fn candidate_pending_availability(para_id: Id) -> Option<CommittedCandidateReceipt<H>>;
+
+		/// Get a vector of events concerning candidates that occurred within a block.
+		// NOTE: this needs to skip block initialization as events are wiped within block
+		// initialization.
+		#[skip_initialize_block]
+		fn candidate_events() -> Vec<CandidateEvent<H>>;
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn group_rotation_info_calculations() {
+		let info = GroupRotationInfo {
+			session_start_block: 10u32,
+			now: 15,
+			group_rotation_frequency: 5,
+		};
+
+		assert_eq!(info.next_rotation_at(), 20);
+		assert_eq!(info.last_rotation_at(), 15);
+
+		let info = GroupRotationInfo {
+			session_start_block: 10u32,
+			now: 11,
+			group_rotation_frequency: 0,
+		};
+
+		assert_eq!(info.next_rotation_at(), 0);
+		assert_eq!(info.last_rotation_at(), 0);
 	}
 }

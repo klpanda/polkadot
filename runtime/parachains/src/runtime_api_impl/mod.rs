@@ -14,9 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Polkadot.  If not, see <http://www.gnu.org/licenses/>.
 
-//! Implements the Runtime API Subsystem
+//! Runtime API implementations for Parachains.
 //!
-//! This provides a clean, ownerless wrapper around the parachain-related runtime APIs. This crate
-//! can also be used to cache responses from heavy runtime APIs.
-//!
-//! TODO: https://github.com/paritytech/polkadot/issues/1419 implement this.
+//! These are exposed as different modules using different sets of primitives.
+//! At the moment there is only a v1 module and it is not completely clear how migration
+//! to a v2 would be done.
+
+pub mod v1;
