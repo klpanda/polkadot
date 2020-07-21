@@ -224,7 +224,7 @@ impl BitfieldDistributionMessage {
 #[derive(Debug)]
 pub enum AvailabilityStoreMessage {
 	/// Query a `AvailableData` from the AV store.
-	QueryPoV(Hash, oneshot::Sender<Option<AvailableData>>),
+	QueryAvailableData(Hash, oneshot::Sender<Option<AvailableData>>),
 
 	/// Query an `ErasureChunk` from the AV store.
 	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<Option<ErasureChunk>>),
@@ -234,17 +234,17 @@ pub enum AvailabilityStoreMessage {
 
 	/// Store a `AvailableData` in the AV store.
 	/// If `ValidatorIndex` is present store corresponding chunk also.
-	StorePoV(Hash, Option<ValidatorIndex>, u32, AvailableData),
+	StoreAvailableData(Hash, Option<ValidatorIndex>, u32, AvailableData),
 }
 
 impl AvailabilityStoreMessage {
 	/// If the current variant contains the relay parent hash, return it.
 	pub fn relay_parent(&self) -> Option<Hash> {
 		match self {
-			Self::QueryPoV(hash, _) => Some(*hash),
+			Self::QueryAvailableData(hash, _) => Some(*hash),
 			Self::QueryChunk(hash, _, _) => Some(*hash),
 			Self::StoreChunk(hash, _, _) => Some(*hash),
-			Self::StorePoV(hash, _, _, _) => Some(*hash),
+			Self::StoreAvailableData(hash, _, _, _) => Some(*hash),
 		}
 	}
 }
