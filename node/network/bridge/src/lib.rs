@@ -533,7 +533,7 @@ mod tests {
 	use assert_matches::assert_matches;
 
 	use polkadot_subsystem::messages::{StatementDistributionMessage, BitfieldDistributionMessage};
-	use subsystem_test::{SingleItemSink, SingleItemStream};
+	use polkadot_subsystem::test_helpers::{SingleItemSink, SingleItemStream};
 
 	// The subsystem's view of the network - only supports a single call to `event_stream`.
 	struct TestNetwork {
@@ -552,7 +552,7 @@ mod tests {
 		TestNetwork,
 		TestNetworkHandle,
 	) {
-		let (net_tx, net_rx) = subsystem_test::single_item_sink();
+		let (net_tx, net_rx) = polkadot_subsystem::test_helpers::single_item_sink();
 		let (action_tx, action_rx) = mpsc::unbounded();
 
 		(
@@ -633,13 +633,13 @@ mod tests {
 
 	struct TestHarness {
 		network_handle: TestNetworkHandle,
-		virtual_overseer: subsystem_test::TestSubsystemContextHandle<NetworkBridgeMessage>,
+		virtual_overseer: polkadot_subsystem::test_helpers::TestSubsystemContextHandle<NetworkBridgeMessage>,
 	}
 
 	fn test_harness<T: Future<Output=()>>(test: impl FnOnce(TestHarness) -> T) {
 		let pool = sp_core::testing::SpawnBlockingExecutor::new();
 		let (network, network_handle) = new_test_network();
-		let (context, virtual_overseer) = subsystem_test::make_subsystem_context(pool);
+		let (context, virtual_overseer) = polkadot_subsystem::test_helpers::make_subsystem_context(pool);
 
 		let network_bridge = run_network(
 			network,
