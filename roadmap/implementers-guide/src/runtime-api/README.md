@@ -35,7 +35,6 @@ The next sections will contain information on specific runtime APIs. The format 
 /// best for the implementation to return an error indicating the failure mode.
 fn some_runtime_api(at: Block, arg1: Type1, arg2: Type2, ...) -> ReturnValue;
 ```
->>>>>>> master
 
 ## Validators
 
