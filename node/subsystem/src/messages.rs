@@ -230,11 +230,15 @@ pub enum AvailabilityStoreMessage {
 	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<Option<ErasureChunk>>),
 
 	/// Store an `ErasureChunk` in the AV store.
-	StoreChunk(Hash, ValidatorIndex, ErasureChunk),
+	///
+	/// Return `Ok(())` if the store operation succeeded, `Err(())` if it failed.
+	StoreChunk(Hash, ValidatorIndex, ErasureChunk, oneshot::Sender<Result<(), ()>>),
 
 	/// Store a `AvailableData` in the AV store.
 	/// If `ValidatorIndex` is present store corresponding chunk also.
-	StoreAvailableData(Hash, Option<ValidatorIndex>, u32, AvailableData),
+	///
+	/// Return `Ok(())` if the store operation succeeded, `Err(())` if it failed.
+	StoreAvailableData(Hash, Option<ValidatorIndex>, u32, AvailableData, oneshot::Sender<Result<(), ()>>),
 }
 
 impl AvailabilityStoreMessage {
@@ -243,8 +247,8 @@ impl AvailabilityStoreMessage {
 		match self {
 			Self::QueryAvailableData(hash, _) => Some(*hash),
 			Self::QueryChunk(hash, _, _) => Some(*hash),
-			Self::StoreChunk(hash, _, _) => Some(*hash),
-			Self::StoreAvailableData(hash, _, _, _) => Some(*hash),
+			Self::StoreChunk(hash, _, _, _) => Some(*hash),
+			Self::StoreAvailableData(hash, _, _, _, _) => Some(*hash),
 		}
 	}
 }
