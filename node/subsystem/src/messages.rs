@@ -246,7 +246,7 @@ pub enum AvailabilityStoreMessage {
 	QueryPoVAvailable(Hash, oneshot::Sender<bool>),
 
 	/// Query an `ErasureChunk` from the AV store.
-	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<ErasureChunk>),
+	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<Option<ErasureChunk>>),
 
 	/// Store an `ErasureChunk` in the AV store.
 	StoreChunk(Hash, ValidatorIndex, ErasureChunk),
