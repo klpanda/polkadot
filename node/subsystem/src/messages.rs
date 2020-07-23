@@ -238,12 +238,12 @@ pub enum AvailabilityStoreMessage {
 	/// Query a `AvailableData` from the AV store.
 	QueryAvailableData(Hash, oneshot::Sender<Option<AvailableData>>),
 
-	/// Query whether a `PoV` exists within the AV Store.
+	/// Query whether a `AvailableData` exists within the AV Store.
 	///
 	/// This is useful in cases like bitfield signing, when existence
 	/// matters, but we don't want to necessarily pass around multiple
 	/// megabytes of data to get a single bit of information.
-	QueryPoVAvailable(Hash, oneshot::Sender<bool>),
+	QueryDataAvailability(Hash, oneshot::Sender<bool>),
 
 	/// Query an `ErasureChunk` from the AV store.
 	QueryChunk(Hash, ValidatorIndex, oneshot::Sender<Option<ErasureChunk>>),
@@ -265,7 +265,7 @@ impl AvailabilityStoreMessage {
 	pub fn relay_parent(&self) -> Option<Hash> {
 		match self {
 			Self::QueryAvailableData(hash, _) => Some(*hash),
-			Self::QueryPoVAvailable(hash, _) => Some(*hash),
+			Self::QueryDataAvailability(hash, _) => Some(*hash),
 			Self::QueryChunk(hash, _, _) => Some(*hash),
 			Self::StoreChunk(hash, _, _, _) => Some(*hash),
 			Self::StoreAvailableData(hash, _, _, _, _) => Some(*hash),

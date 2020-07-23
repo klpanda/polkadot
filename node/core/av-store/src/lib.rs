@@ -149,7 +149,7 @@ fn process_message(db: &Arc<dyn KeyValueDB>, msg: AvailabilityStoreMessage) -> R
 		QueryAvailableData(hash, tx) => {
 			let _ = tx.send(available_data(db, &hash).map(|d| d.data));
 		}
-		QueryPoVAvailable(hash, tx) => {
+		QueryDataAvailability(hash, tx) => {
 			let result = match available_data(db, &hash) {
 				Some(_) => true,
 				None => false,
