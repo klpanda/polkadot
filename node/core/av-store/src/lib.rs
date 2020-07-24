@@ -160,6 +160,9 @@ fn process_message(db: &Arc<dyn KeyValueDB>, msg: AvailabilityStoreMessage) -> R
 		QueryChunk(hash, id, tx) => {
 			let _ = tx.send(get_chunk(db, &hash, id)?);
 		}
+		QueryChunkAvailability(hash, id, tx) => {
+			let _ = tx.send(get_chunk(db, &hash, id)?.is_some());
+		}
 		StoreChunk(hash, id, chunk, tx) => {
 			match store_chunk(db, &hash, id, chunk) {
 				Err(e) => {
@@ -316,7 +319,7 @@ mod tests {
 	};
 	use std::cell::RefCell;
 	use polkadot_primitives::v1::{
-		AvailableData, BlockData, HeadData, GlobalValidationSchedule, LocalValidationData, PoV,
+		AvailableData, BlockData, HeadData, GlobalValidationData, LocalValidationData, PoV,
 		OmittedValidationData,
 	};
 	use polkadot_subsystem::test_helpers;
@@ -330,7 +333,7 @@ mod tests {
 	}
 
 	struct TestState {
-		global_validation_schedule: GlobalValidationSchedule,
+		global_validation_schedule: GlobalValidationData,
 		local_validation_data: LocalValidationData,
 	}
 
@@ -344,7 +347,7 @@ mod tests {
 				validation_code_hash: Default::default(),
 			};
 
-			let global_validation_schedule = GlobalValidationSchedule {
+			let global_validation_schedule = GlobalValidationData {
 				max_code_size: 1000,
 				max_head_data_size: 1000,
 				block_number: Default::default(),
@@ -396,7 +399,7 @@ mod tests {
 
 			let chunk_msg = AvailabilityStoreMessage::StoreChunk(
 				relay_parent,
-				validator_index, 
+				validator_index,
 				chunk.clone(),
 				tx,
 			);
@@ -438,7 +441,7 @@ mod tests {
 				global_validation,
 				local_validation,
 			};
-				
+
 			let available_data = AvailableData {
 				pov,
 				omitted_validation,
